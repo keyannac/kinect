@@ -170,65 +170,15 @@ int main(int argc, char **argv) {
 		}
 	}else{
   	std::cerr << "Error capturing frame !" << std::endl;
-	}		
+        }
+        //for testing to confirm accuracy of data
         for (int y = 0; y < 20; y ++){
                 for(int x = 0; x < 20; x++){
-                cout << static_cast<unsigned>(points[x][y].red)<<" ";
+                //cout << static_cast<unsigned>(points[x][y].red)<<" ";
 		}
                 cout <<"\n";
         }
         videoReader.release();
-
-        /*Freenect::Freenect freenect;
-        MyFreenectDevice& device = freenect.createDevice<MyFreenectDevice>(0);
-
-        namedWindow("rgb",CV_WINDOW_AUTOSIZE);
-        namedWindow("depth",CV_WINDOW_AUTOSIZE);
-        device.startVideo();
-        device.startDepth();
-        while (!die) {
-                device.getVideo(rgbMat);
-                device.getDepth(depthMat);
-                cv::imshow("rgb", rgbMat);
-                depthMat.convertTo(depthf, CV_8UC1, 255.0/2048.0);
-                cv::imshow("depth",depthf);
-                char k = cvWaitKey(5);
-                if( k == 27 ){
-                        cvDestroyWindow("rgb");
-                        cvDestroyWindow("depth");
-                        break;
-                }
-                if( k == 8 ) {
-                        std::ostringstream file;
-                        file << filename << i_snap << suffix;
-                        cv::imwrite(file.str(),rgbMat);
-                        i_snap++;
-                }
-                if(iter >= 1000) break;
-                iter++;
-        }
-
-        device.stopVideo();
-        device.stopDepth();
-        return 0;*/
-/*pcl::PointCloud<pcl::PointXYZ> cloud;
-cv::Mat1s depth_image;
-const float dc1= -0.0030711016;
-const float dc2=3.3309495161;
-float fx_d,fy_d,px_d,py_d;
-//From calibration
-cloud.width = depth_image.cols; //Dimensions must be initialized to use 2-D indexing
-cloud.height = depth_image.rows;
-cloud.resize(cloud.width*cloud.height);
-for(int v=0; v< depth_image.rows; v++)
-//2-D indexing
-for(int u=0; u< depth_image.cols; u++) {
-
-float z = 1.0f / (depth_image(v,u)*dc1+dc2);
-cloud(u,v).x = z*(u-px_d)/fx_d;
-cloud(u,v).y = z*(v-py_d)/fy_d;
-cloud(u,v).z = z;
-}*/
 
 }
 
