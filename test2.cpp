@@ -6,15 +6,15 @@
 #include "./libfreenect/wrappers/cpp/libfreenect.hpp"
 #include<iostream>
 #include<stdio.h>
-#include "../Documents/pcl/io/pcd_io.h"
-#include "../Documents/pcl/point_types.h"
-#include "../Documents/pcl/visualization/cloud_viewer.h"
+#include "pcl/io/pcd_io.h"
+#include "pcl/point_types.h"
+#include "pcl/visualization/cloud_viewer.h"
 
 #include <vector>
 #include <cmath>
 #include <pthread.h>
-#include <cv.h>
-#include <cxcore.h>
+#include <cv.hpp>
+#include <cxcore.hpp>
 
 
 using namespace cv;
@@ -110,6 +110,13 @@ class MyFreenectDevice : public Freenect::FreenectDevice {
 		bool m_new_depth_frame;
 };
 
+struct pixelData{
+        uchar red;
+        uchar green;
+        uchar blue;
+        uchar depthmm;
+};
+
 
 int main(int argc, char **argv) {
 	bool die(false);
@@ -117,72 +124,88 @@ int main(int argc, char **argv) {
 	string suffix(".png");
 	int i_snap(0),iter(0);
 	
+        pixelData points [640][480];
+
 	Mat depthMat(Size(640,480),CV_16UC1);
 	Mat depthf (Size(640,480),CV_8UC1);
 	Mat rgbMat(Size(640,480),CV_8UC3,Scalar(0));
 	Mat ownMat(Size(640,480),CV_8UC3,Scalar(0));
 	Mat pcMap(Size(640,480),CV_32FC3);
-/*	
-VideoCapture videoReader;
-	videoReader.open( CV_CAP_OPENNI );
-	videoReader.set( CV_CAP_OPENNI_IMAGE_GENERATOR_OUTPUT_MODE, CV_CAP_OPENNI_VGA_30HZ );
-	videoReader.set(CV_CAP_OPENNI_DEPTH_GENERATOR_REGISTRATION,1); 
+
+        VideoCapture videoReader;
+        videoReader.open( CV_CAP_OPENNI );
+        videoReader.set( CV_CAP_OPENNI_IMAGE_GENERATOR_OUTPUT_MODE, CV_CAP_OPENNI_VGA_30HZ );
+        videoReader.set(CV_CAP_OPENNI_DEPTH_GENERATOR_REGISTRATION,1);
 	//grab a frame
 	if (videoReader.grab()){
-    		videoReader.retrieve(rgbMat,CV_CAP_OPENNI_BGR_IMAGE);
+                videoReader.retrieve(rgbMat,CV_CAP_OPENNI_BGR_IMAGE);
     		videoReader.retrieve(depthMat,CV_CAP_OPENNI_POINT_CLOUD_MAP);
    		//Here you get the depth
-   		int y = 0;
-   		int x = 0;
-  		cv::Vec3f pt_3d = rgbMat.at<cv::Vec3f>(y,x); //0 - X, 1 - Y, 2 - Z
-		for (x = 0; x <480 ;x++){	
-			for (y = 0; y<640; y++){
-				std::cout<< rgbMat.at<cv::Vec3f>(y,x);
+		for (int x = 0; x <640 ;x++){	
+			for (int y = 0; y<480; y++){
+                            Vec3f pt_3d = rgbMat.at<Vec3f>(y,x); //0 - X, 1 - Y, 2 - Z
+                            Vec3b intensity = rgbMat.at<Vec3b>(y,x);
+
+                            uchar xpix = pt_3d.val[0];
+                            uchar ypix = pt_3d.val[1];
+                            uchar zpix = pt_3d.val[2];
+
+                            uchar blue = intensity.val[0];
+                            uchar green = intensity.val[1];
+                            uchar red = intensity.val[2];
+                            cout << static_cast<unsigned>(blue) << " ";
+                            cout << static_cast<unsigned>(green) << " ";
+                            cout << static_cast<unsigned>(red) << " ";
+                            cout << static_cast<unsigned>(zpix)<< "\n";
+                            points[xpix][ypix].blue = blue;
+                            points[xpix][ypix].green = green;
+                            points[xpix][ypix].red = red;
+                            points[xpix][ypix].depthmm = zpix;
 			}
 		}
 	}else{
   	std::cerr << "Error capturing frame !" << std::endl;
 	}		
+	for (int y = 0; y < 480; y ++){
+		for(int x = 0; x < 640; x++){
+                //cout << "B" << static_cast<unsigned>(points[x][y].blue) << " G" << static_cast<unsigned>(points[x][y].green);
+		}
+        }
+        videoReader.release();
 
-	// The next two lines must be changed as Freenect::Freenect
-	// isn't a template but the method createDevice:
-	// Freenect::Freenect<MyFreenectDevice> freenect;
-	// MyFreenectDevice& device = freenect.createDevice(0);
-	// by these two lines:
-*/	
-	Freenect::Freenect freenect;
-	MyFreenectDevice& device = freenect.createDevice<MyFreenectDevice>(0);
-	
-	namedWindow("COLORIZED",CV_WINDOW_AUTOSIZE);
-	namedWindow("GREYSCALE DEPTH",CV_WINDOW_AUTOSIZE);
-	device.startVideo();
-	device.startDepth();
-	while (!die) {
-		device.getVideo(rgbMat);
-		device.getDepth(depthMat);
-		cv::imshow("COLORIZED", rgbMat);
-		depthMat.convertTo(depthf, CV_8UC1, 255.0/2048.0);
-		cv::imshow("GREYSCALE DEPTH",depthf);
-		char k = cvWaitKey(5);
-		if( k == 27 ){
-			cvDestroyWindow("COLORIZED");
-			cvDestroyWindow("GREYSCALE DEPTH");
-			break;
-		}
-		if( k == 8 ) {
-			std::ostringstream file;
-			file << filename << i_snap << suffix;
-			cv::imwrite(file.str(),rgbMat);
-			i_snap++;
-		}
-		if(iter >= 1000) break;
-		iter++;
-	}
-	
-	device.stopVideo();
-	device.stopDepth();
-	return 0;
-pcl::PointCloud<pcl::PointXYZ> cloud;
+        /*Freenect::Freenect freenect;
+        MyFreenectDevice& device = freenect.createDevice<MyFreenectDevice>(0);
+
+        namedWindow("rgb",CV_WINDOW_AUTOSIZE);
+        namedWindow("depth",CV_WINDOW_AUTOSIZE);
+        device.startVideo();
+        device.startDepth();
+        while (!die) {
+                device.getVideo(rgbMat);
+                device.getDepth(depthMat);
+                cv::imshow("rgb", rgbMat);
+                depthMat.convertTo(depthf, CV_8UC1, 255.0/2048.0);
+                cv::imshow("depth",depthf);
+                char k = cvWaitKey(5);
+                if( k == 27 ){
+                        cvDestroyWindow("rgb");
+                        cvDestroyWindow("depth");
+                        break;
+                }
+                if( k == 8 ) {
+                        std::ostringstream file;
+                        file << filename << i_snap << suffix;
+                        cv::imwrite(file.str(),rgbMat);
+                        i_snap++;
+                }
+                if(iter >= 1000) break;
+                iter++;
+        }
+
+        device.stopVideo();
+        device.stopDepth();
+        return 0;*/
+/*pcl::PointCloud<pcl::PointXYZ> cloud;
 cv::Mat1s depth_image;
 const float dc1= -0.0030711016;
 const float dc2=3.3309495161;
@@ -199,7 +222,7 @@ float z = 1.0f / (depth_image(v,u)*dc1+dc2);
 cloud(u,v).x = z*(u-px_d)/fx_d;
 cloud(u,v).y = z*(v-py_d)/fy_d;
 cloud(u,v).z = z;
-}
+}*/
 
 }
 
